@@ -30,8 +30,8 @@ parser.add_argument('--epochs', default=20, type=int, metavar='N',
             help='number of total epochs to run')
 parser.add_argument('--start-epoch', default=0, type=int, metavar='N',
             help='manual epoch number (useful on restarts)')
-parser.add_argument('-b', '--batch-size', default=16, type=int, metavar='N',
-            help='mini-batch size (default: 16)')
+parser.add_argument('-b', '--batch-size', default=2, type=int, metavar='N',
+            help='mini-batch size (default: 2)')
 parser.add_argument('--lr', '--learning-rate', default=0.05, type=float,
             metavar='LR', help='initial learning rate')
 parser.add_argument('--momentum', default=0.9, type=float, metavar='M',
@@ -63,7 +63,7 @@ def main():
     if not os.path.exists(args.save_dir):
         os.makedirs(args.save_dir)
 
-    model = SegNet(3, 3)
+    model = SegNet(3, 1)
 
     #model.features = torch.nn.DataParallel(model.features)
     if use_gpu:
@@ -186,7 +186,8 @@ def train(train_loader, model, criterion, optimizer, epoch):
             input_var = input_var.half()
 
         # Compute output
-        output = model(input_var)
+        outputR, outputG, outputB = model(input_var)
+        output = concatenateChannels(outputR, outputG, outputB)
         loss = criterion(output, target_var)
 
         if i % args.print_freq == 0:
@@ -238,7 +239,8 @@ def validate(val_loader, model, criterion):
             input_var = input_var.half()
 
         # Compute output
-        output = model(input_var)
+        outputR, outputG, outputB = model(input_var)
+        output = concatenateChannels(outputR, outputG, outputB)
         loss = criterion(output, target_var)
 
         output = output.float()
@@ -349,6 +351,21 @@ def displaySamples(input, output):
     cv2.imshow('Input Image', input)
     cv2.imshow('Reconstructed Image', output)
     cv2.waitKey(1)
+
+def concatenateChannels(r, g, b):
+    '''
+        Concatenate the R, G, and B channels to form an RGB Image
+        for channel-wise reconstruction experiments.
+
+        Args:
+            R-channel Tensor, G-channel Tensor, B-channel Tensor
+
+        Retuns RGB PyTorch Tensor
+    '''
+
+    return torch.cat((r,g,b), 1)
+
+
 
 class UnNormalize(object):
     def __init__(self, mean, std):

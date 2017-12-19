@@ -79,7 +79,9 @@ class SegNet(nn.Module):
 
         self.conv12d = nn.Conv2d(64, 64, kernel_size=3, padding=1)
         self.bn12d = nn.BatchNorm2d(64, momentum=batchNorm_momentum)
-        self.conv11d = nn.Conv2d(64, label_nbr, kernel_size=3, padding=1)
+        self.conv11dr = nn.Conv2d(64, label_nbr, kernel_size=3, padding=1)
+        self.conv11dg = nn.Conv2d(64, label_nbr, kernel_size=3, padding=1)
+        self.conv11db = nn.Conv2d(64, label_nbr, kernel_size=3, padding=1)
 
     def forward(self, x):
         """Forward method."""
@@ -141,9 +143,11 @@ class SegNet(nn.Module):
         # Stage 1d
         x1d = F.max_unpool2d(x21d, id1, kernel_size=2, stride=2, output_size=size1)
         x12d = F.relu(self.bn12d(self.conv12d(x1d)))
-        x11d = self.conv11d(x12d)
+        x11dr = self.conv11dr(x12d)
+        x11dg = self.conv11dg(x12d)
+        x11db = self.conv11db(x12d)
 
-        return x11d
+        return x11dr, x11dg, x11db
 
     def initialized_with_pretrained_weights(self):
         """Initialiaze."""
