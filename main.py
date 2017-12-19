@@ -1,5 +1,11 @@
 '''
 Image Reconstruction using SegNet
+
+This code outputs channel-wise reconstruction i.e. each of the three
+RGB Channels are predicted independetly.
+Loss is calculated as per the concatenated output (i.e. concatenate
+the 3 predicted outputs to form an RGB image).
+
 Code adapted from: https://github.com/chengyangfu/pytorch-vgg-cifar10
 '''
 
