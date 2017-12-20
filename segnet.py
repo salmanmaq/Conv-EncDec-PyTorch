@@ -143,9 +143,9 @@ class SegNet(nn.Module):
         # Stage 1d
         x1d = F.max_unpool2d(x21d, id1, kernel_size=2, stride=2, output_size=size1)
         x12d = F.relu(self.bn12d(self.conv12d(x1d)))
-        x11dr = self.conv11dr(x12d)
-        x11dg = self.conv11dg(x12d)
-        x11db = self.conv11db(x12d)
+        x11dr = F.softmax(self.conv11dr(x12d))
+        x11dg = F.softmax(self.conv11dg(x12d))
+        x11db = F.softmax(self.conv11db(x12d))
 
         return x11dr, x11dg, x11db
 

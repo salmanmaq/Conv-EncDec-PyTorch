@@ -69,7 +69,7 @@ def main():
     if not os.path.exists(args.save_dir):
         os.makedirs(args.save_dir)
 
-    model = SegNet(3, 1)
+    model = SegNet(3, 255)
 
     #model.features = torch.nn.DataParallel(model.features)
     if use_gpu:
@@ -425,6 +425,20 @@ def splitInput(input):
     channelB = torch.from_numpy(channelB).float()
 
     return channelR, channelG, channelB
+
+def segmentedImagetoLabel(seg):
+    '''
+        Gets the segmented image and returns the one-hot tensor representing
+        the segmented distribution.
+
+        Args:
+            seg: The segmented RGB image
+
+        Output:
+            The one-hot tensor representation of the image
+    '''
+
+    
 
 class UnNormalize(object):
     def __init__(self, mean, std):
