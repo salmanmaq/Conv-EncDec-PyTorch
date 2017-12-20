@@ -3,8 +3,8 @@ Image Reconstruction using SegNet
 
 This code outputs channel-wise reconstruction i.e. each of the three
 RGB Channels are predicted independetly.
-Loss is calculated as per the concatenated output (i.e. concatenate
-the 3 predicted outputs to form an RGB image).
+Loss is calculated as per channel and summed, then back-propagated through
+the network.
 
 Code adapted from: https://github.com/chengyangfu/pytorch-vgg-cifar10
 '''
@@ -187,15 +187,23 @@ def train(train_loader, model, criterion, optimizer, epoch):
         data_time.update(time.time() - end)
         target = input.cuda()
         input_var = torch.autograd.Variable(input).cuda()
-        target_var = torch.autograd.Variable(target)
         if args.half:
             input_var = input_var.half()
 
+        target_varR, target_varG, target_varB = splitInput(target)
+        target_var = torch.autograd.Variable(target)
+        target_varR = torch.autograd.Variable(target_varR).cuda()
+        target_varG = torch.autograd.Variable(target_varG).cuda()
+        target_varB = torch.autograd.Variable(target_varB).cuda()
+
         # Compute output
         outputR, outputG, outputB = model(input_var)
-        output = concatenateChannels(outputR, outputG, outputB)
-        loss = criterion(output, target_var)
+        lossR = criterion(outputR, target_varR)
+        lossG = criterion(outputG, target_varG)
+        lossB = criterion(outputB, target_varB)
+        loss = lossR + lossG + lossB
 
+        output = concatenateChannels(outputR, outputG, outputB)
         if i % args.print_freq == 0:
             displaySamples(target_var, output)
 
@@ -204,7 +212,7 @@ def train(train_loader, model, criterion, optimizer, epoch):
         loss.backward()
         optimizer.step()
 
-        output = output.float()
+        #output = output.float()
         loss = loss.float()
 
         # Measure accuracy and record loss
@@ -240,14 +248,23 @@ def validate(val_loader, model, criterion):
     for i, input in enumerate(val_loader):
         target = input.cuda()
         input_var = torch.autograd.Variable(input, volatile=True).cuda()
-        target_var = torch.autograd.Variable(target, volatile=True)
         if args.half:
             input_var = input_var.half()
 
+        target_varR, target_varG, target_varB = splitInput(target)
+        target_var = torch.autograd.Variable(target)
+        target_varR = torch.autograd.Variable(target_varR, volatile=True).cuda()
+        target_varG = torch.autograd.Variable(target_varG, volatile=True).cuda()
+        target_varB = torch.autograd.Variable(target_varB, volatile=True).cuda()
+
         # Compute output
         outputR, outputG, outputB = model(input_var)
+        lossR = criterion(outputR, target_varR)
+        lossG = criterion(outputG, target_varG)
+        lossB = criterion(outputB, target_varB)
+        loss = lossR + lossG + lossB
+
         output = concatenateChannels(outputR, outputG, outputB)
-        loss = criterion(output, target_var)
 
         output = output.float()
         loss = loss.float()
@@ -371,7 +388,43 @@ def concatenateChannels(r, g, b):
 
     return torch.cat((r,g,b), 1)
 
+def splitInput(input):
+    '''
+        Splits an Input Image PyTorch Tensor into it's constituent channels
+        RGB.
+    '''
 
+    if use_gpu:
+        input = input.cpu()
+
+    input = input.numpy()
+
+    # Iterate over each image tensor in a batch
+    channelR = np.expand_dims(np.zeros((input.shape[2], input.shape[3])), axis=0)
+    channelG = np.expand_dims(np.zeros((input.shape[2], input.shape[3])), axis=0)
+    channelB = np.expand_dims(np.zeros((input.shape[2], input.shape[3])), axis=0)
+
+    #print(channelR)
+
+    for i in range(args.batch_size):
+
+        img = input[i,:,:,:]
+
+        channelR = np.concatenate((channelR, np.expand_dims(img[0,:,:], axis = 0)), 0)
+        channelG = np.concatenate((channelG, np.expand_dims(img[1,:,:], axis = 0)), 0)
+        channelB = np.concatenate((channelB, np.expand_dims(img[2,:,:], axis = 0)), 0)
+
+    # Strip the extra empty channel added initially
+    channelR = channelR[1:,:,:]
+    channelG = channelG[1:,:,:]
+    channelB = channelB[1:,:,:]
+
+    # Convert back to torch tensors
+    channelR = torch.from_numpy(channelR).float()
+    channelG = torch.from_numpy(channelG).float()
+    channelB = torch.from_numpy(channelB).float()
+
+    return channelR, channelG, channelB
 
 class UnNormalize(object):
     def __init__(self, mean, std):
