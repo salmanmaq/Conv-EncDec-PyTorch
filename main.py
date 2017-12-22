@@ -426,6 +426,25 @@ def splitInput(input):
 
     return channelR, channelG, channelB
 
+#TODO: Move auxillary code to utils
+
+def imagetoLabelTesnor(input):
+    '''
+        Splits the input image into the three RGB channels, and then
+        converts each channel into a one-hot tensor representing the
+        pixel distribution in the image. Useful for channel-wise
+        prediction.
+
+        Args:
+            seg: The segmented RGB image
+
+        Output:
+            The one-hot tensor representation of the image
+    '''
+
+    r, g, b = splitInput(input)
+
+
 def segmentedImagetoLabel(seg):
     '''
         Gets the segmented image and returns the one-hot tensor representing
