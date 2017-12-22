@@ -438,7 +438,13 @@ def segmentedImagetoLabel(seg):
             The one-hot tensor representation of the image
     '''
 
-    
+    if use_gpu:
+        seg = seg.cpu()
+
+    seg = seg.data.numpy()
+
+
+
 
 class UnNormalize(object):
     def __init__(self, mean, std):
